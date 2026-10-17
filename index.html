@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BEARING FORCE ANALYZER — Phân tích ảnh hưởng góc β đến tải trọng ổ đỡ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ede5d3;--bg-2:#f5efe0;--panel:#fbf8f0;--panel-2:#fefdf8;
+  --border:#c9bfa8;--grid:#d8cfb8;--grid-2:#ece5d2;
+  --ink:#2a241d;--ink-soft:#5a5043;--ink-muted:#8a7e6a;
+  --accent:#c0392b;--accent-2:#117a65;--accent-3:#b9770e;--accent-4:#4d5d53;--accent-5:#5d6d7e;--accent-6:#8e44ad;
+  --shadow:rgba(60,45,20,.1);--shadow-2:rgba(60,45,20,.18);
+}
+html,body{background:var(--bg);color:var(--ink);font-family:'Space Grotesk',system-ui,sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
+body{background:radial-gradient(ellipse 1200px 800px at 15% -5%,rgba(192,57,43,.05),transparent 60%),radial-gradient(ellipse 1000px 700px at 90% 110%,rgba(17,122,101,.05),transparent 60%),var(--bg);padding:18px}
+.mono{font-family:'JetBrains Mono',monospace;font-feature-settings:'tnum'}
+h1,h2,h3,h4{font-weight:600;letter-spacing:-.2px}
+
+header.app-header{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:18px 26px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;box-shadow:0 2px 0 var(--shadow);position:relative;overflow:hidden}
+header.app-header::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--accent),var(--accent-2))}
+header.app-header .title-block{display:flex;align-items:center;gap:16px}
+header.app-header .logo-svg{width:48px;height:48px;flex-shrink:0}
+header.app-header h1{font-size:22px;font-weight:700;color:var(--ink);margin-bottom:2px;letter-spacing:-.5px}
+header.app-header h1 .acc{color:var(--accent)}
+header.app-header p{font-size:12px;color:var(--ink-soft)}
+header.app-header .meta{display:flex;gap:8px;flex-wrap:wrap}
+header.app-header .badge{background:var(--bg);border:1px solid var(--border);padding:5px 11px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--ink-soft)}
+header.app-header .badge.live{color:var(--accent-2);border-color:var(--accent-2)}
+
+.app-grid{display:grid;grid-template-columns:310px 1fr 290px;gap:14px;margin-bottom:16px}
+@media(max-width:1400px){.app-grid{grid-template-columns:290px 1fr}.results-panel{grid-column:1/-1}}
+@media(max-width:900px){.app-grid{grid-template-columns:1fr}}
+
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;box-shadow:0 1px 0 var(--shadow)}
+.panel-section{padding:13px 15px;border-bottom:1px solid var(--grid)}
+.panel-section:last-child{border-bottom:none}
+.panel-section h3{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-muted);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.panel-section h3::before{content:'';width:3px;height:11px;background:var(--accent);border-radius:1px}
+.panel-section h3 .num{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:var(--ink);color:var(--panel);border-radius:2px;font-size:9px;font-weight:700;margin-right:2px}
+
+.field{display:grid;grid-template-columns:1fr 90px 28px;gap:6px;align-items:center;margin-bottom:6px;font-size:12px}
+.field label{color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.field input,.field select{padding:5px 7px;border:1px solid var(--grid);background:var(--bg-2);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink);border-radius:2px;text-align:right;width:100%}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 2px rgba(192,57,43,.1)}
+.field .u{font-size:10px;color:var(--ink-muted);font-family:'JetBrains Mono',monospace}
+.field.full{grid-template-columns:1fr}
+.field.full input,.field.full select{text-align:left}
+
+.check{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-soft);margin-bottom:5px;cursor:pointer;user-select:none}
+.check input{cursor:pointer;accent-color:var(--accent)}
+
+.beta-box{background:linear-gradient(135deg,rgba(192,57,43,.07),rgba(192,57,43,.02));border:1px solid rgba(192,57,43,.22);padding:13px;border-radius:4px;margin-top:6px}
+.beta-display{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px}
+.beta-display .val{font-family:'JetBrains Mono',monospace;font-size:30px;font-weight:600;color:var(--accent);line-height:1}
+.beta-display .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-muted)}
+input[type=range]{width:100%;height:6px;background:var(--bg);border:1px solid var(--grid);border-radius:3px;-webkit-appearance:none;appearance:none;cursor:pointer;margin:6px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;background:var(--accent);border:2px solid var(--panel);border-radius:50%;cursor:pointer;box-shadow:0 1px 4px var(--shadow-2)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;background:var(--accent);border:2px solid var(--panel);border-radius:50%;cursor:pointer}
+.beta-btns{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-top:6px}
+.beta-btns button{padding:5px 4px;font-size:10px}
+
+button{background:var(--bg-2);border:1px solid var(--grid);padding:6px 11px;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:500;color:var(--ink);border-radius:2px;cursor:pointer;transition:all .15s}
+button:hover{background:#fff;border-color:var(--ink-soft);transform:translateY(-1px);box-shadow:0 2px 4px var(--shadow)}
+button:active{transform:translateY(0)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary:hover{background:#a52f23;border-color:#a52f23}
+button.secondary{background:var(--accent-2);border-color:var(--accent-2);color:#fff}
+button.secondary:hover{background:#0d6553}
+button.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.action-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.action-row button{flex:1;min-width:80px}
+
+.diagrams-panel{padding:0;overflow:hidden}
+.diagrams-header{background:var(--bg-2);border-bottom:1px solid var(--border);padding:11px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.diagrams-header h2{font-size:13px;font-weight:600;letter-spacing:.3px;display:flex;align-items:center;gap:8px}
+.diagrams-header h2 .dot{width:8px;height:8px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.diag-toolbar{display:flex;gap:10px;font-size:10px;flex-wrap:wrap}
+.diag-toolbar label{display:flex;align-items:center;gap:3px;color:var(--ink-soft);cursor:pointer;text-transform:uppercase;letter-spacing:.5px}
+.diag-toolbar label input{accent-color:var(--accent)}
+
+.diagram-stack{padding:14px;display:flex;flex-direction:column;gap:14px}
+.diag-box{border:1px solid var(--grid);border-radius:3px;background:var(--panel-2);overflow:hidden}
+.diag-title{background:var(--bg-2);padding:6px 12px;border-bottom:1px solid var(--grid);display:flex;justify-content:space-between;align-items:center;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft)}
+.diag-title .tag{font-family:'JetBrains Mono',monospace;font-weight:400;color:var(--ink-muted);text-transform:none;letter-spacing:0;font-size:10px}
+.diag-title .legend{display:flex;gap:10px;font-size:9px;text-transform:none;letter-spacing:0}
+.diag-title .legend span{display:flex;align-items:center;gap:3px}
+.diag-title .legend i{width:10px;height:2px;display:inline-block}
+.diag-content{position:relative}
+.diag-svg{width:100%;display:block;cursor:crosshair;transition:transform .3s ease}
+.zoom-controls{position:absolute;top:8px;right:8px;display:flex;flex-direction:column;gap:4px;background:rgba(251,248,240,.9);padding:4px;border-radius:3px;border:1px solid var(--grid);box-shadow:0 1px 3px var(--shadow)}
+.zoom-controls button{padding:3px 8px;font-size:14px;line-height:1;background:var(--panel);border:1px solid var(--grid);border-radius:2px;color:var(--ink-soft);font-weight:600;min-width:26px}
+.zoom-controls button:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+.rcard{padding:11px 14px;border-bottom:1px solid var(--grid)}
+.rcard:last-child{border-bottom:none}
+.rcard h4{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--ink-muted);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.rcard h4 .dot{width:6px;height:6px;border-radius:50%}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px}
+.ritem{display:flex;flex-direction:column;font-size:10px}
+.ritem .l{color:var(--ink-muted);font-size:9px;letter-spacing:.3px}
+.ritem .v{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--ink);line-height:1.3}
+.ritem .v.red{color:var(--accent)}
+.ritem .v.teal{color:var(--accent-2)}
+.ritem .v.amber{color:var(--accent-3)}
+.ritem .v.sage{color:var(--accent-4)}
+.ritem .v.slate{color:var(--accent-5)}
+.ritem .v.purple{color:var(--accent-6)}
+.ritem .v.na{color:var(--ink-muted);font-style:italic;font-weight:400;font-size:11px}
+
+.hover-info{background:var(--bg);border:1px solid var(--border);padding:9px 11px;font-family:'JetBrains Mono',monospace;font-size:10px;border-radius:3px;margin-top:6px;min-height:90px}
+.hover-info .hrow{display:flex;justify-content:space-between;margin-bottom:3px}
+.hover-info .hrow .k{color:var(--ink-muted)}
+.hover-info .hrow .v{color:var(--ink);font-weight:600}
+.hover-info .hempty{color:var(--ink-muted);font-style:italic;text-align:center;padding:18px 0;font-family:'Space Grotesk',sans-serif;font-size:11px}
+
+.analysis{font-size:11px;line-height:1.55;color:var(--ink-soft)}
+.analysis p{margin-bottom:6px}
+.analysis .hl{color:var(--accent);font-weight:600}
+.analysis .hl2{color:var(--accent-2);font-weight:600}
+.analysis .hl3{color:var(--accent-3);font-weight:600}
+.analysis .warn{color:var(--accent-3);font-weight:600}
+
+.survey-panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:18px;margin-bottom:14px;box-shadow:0 1px 0 var(--shadow)}
+.survey-panel h2{font-size:15px;margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.survey-panel h2::before{content:'';width:3px;height:14px;background:var(--accent-2);border-radius:1px}
+.survey-panel .sub{font-size:11px;color:var(--ink-muted);margin-bottom:14px}
+.survey-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:10px;background:var(--bg-2);border:1px solid var(--grid);border-radius:3px}
+.survey-controls .field{margin:0;min-width:120px}
+.survey-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:14px}
+@media(max-width:900px){.survey-grid{grid-template-columns:1fr}}
+.chart-container{background:var(--panel-2);border:1px solid var(--grid);border-radius:3px;padding:10px;height:380px;position:relative}
+.table-wrap{background:var(--panel-2);border:1px solid var(--grid);border-radius:3px;overflow:auto;max-height:380px}
+table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:10px}
+table th{background:var(--bg-2);padding:6px 7px;text-align:right;font-weight:600;border-bottom:2px solid var(--grid);position:sticky;top:0;color:var(--ink-soft);white-space:nowrap}
+table th:first-child{text-align:center}
+table td{padding:3px 7px;text-align:right;border-bottom:1px solid var(--grid);color:var(--ink)}
+table td:first-child{text-align:center}
+table tr:hover td{background:var(--bg-2)}
+table tr.cur td{background:rgba(192,57,43,.1);color:var(--accent);font-weight:600}
+
+.formulas-panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:18px;margin-bottom:14px;box-shadow:0 1px 0 var(--shadow)}
+.formulas-panel h2{font-size:15px;margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.formulas-panel h2::before{content:'';width:3px;height:14px;background:var(--accent-3);border-radius:1px}
+.formulas-panel .sub{font-size:11px;color:var(--ink-muted);margin-bottom:14px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
+.fcard{background:var(--bg-2);border-left:3px solid var(--accent);padding:10px 13px;border-radius:2px}
+.fcard h4{font-size:11px;font-weight:600;color:var(--ink);margin-bottom:5px}
+.fcard .eq{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent);background:var(--panel);padding:5px 9px;border-radius:2px;margin:4px 0;border:1px solid var(--grid)}
+.fcard .desc{font-size:10px;color:var(--ink-soft);line-height:1.5}
+.fcard.t2{border-left-color:var(--accent-2)} .fcard.t2 .eq{color:var(--accent-2)}
+.fcard.t3{border-left-color:var(--accent-3)} .fcard.t3 .eq{color:var(--accent-3)}
+.fcard.t4{border-left-color:var(--accent-4)} .fcard.t4 .eq{color:var(--accent-4)}
+.fcard.t6{border-left-color:var(--accent-6)} .fcard.t6 .eq{color:var(--accent-6)}
+
+.warn-box{background:rgba(185,119,14,.08);border:1px solid rgba(185,119,14,.3);border-left:3px solid var(--accent-3);padding:8px 11px;border-radius:2px;font-size:11px;color:var(--ink-soft);margin-top:8px;line-height:1.5}
+.warn-box strong{color:var(--accent-3)}
+.err-box{background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);border-left:3px solid var(--accent);padding:8px 11px;border-radius:2px;font-size:11px;color:var(--ink-soft);margin-top:8px}
+.ok-box{background:rgba(17,122,101,.07);border:1px solid rgba(17,122,101,.3);border-left:3px solid var(--accent-2);padding:8px 11px;border-radius:2px;font-size:11px;color:var(--ink-soft);margin-top:8px}
+
+footer{text-align:center;padding:18px;font-size:11px;color:var(--ink-muted);border-top:1px solid var(--border);margin-top:10px}
+footer .mono{font-size:10px}
+
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg-2)}
+::-webkit-scrollbar-thumb{background:var(--grid);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--ink-muted)}
+
+@media print{
+  body{background:#fff;padding:0}
+  .inputs-panel,.results-panel,.diag-toolbar,.survey-controls,.action-row,.zoom-controls{display:none!important}
+  .app-grid{grid-template-columns:1fr}
+  .panel{box-shadow:none;break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="title-block">
+    <svg class="logo-svg" viewBox="0 0 48 48">
+      <rect x="2" y="20" width="44" height="8" fill="#2a241d" rx="1"/>
+      <circle cx="8" cy="24" r="6" fill="none" stroke="#117a65" stroke-width="2"/>
+      <circle cx="8" cy="24" r="2" fill="#117a65"/>
+      <circle cx="40" cy="24" r="6" fill="none" stroke="#b9770e" stroke-width="2"/>
+      <circle cx="40" cy="24" r="2" fill="#b9770e"/>
+      <path d="M 24 20 L 20 6 L 28 6 Z" fill="#c0392b"/>
+      <line x1="24" y1="20" x2="16" y2="10" stroke="#8e44ad" stroke-width="2"/>
+      <polygon points="16,10 14,12 18,12" fill="#8e44ad"/>
+      <text x="33" y="14" font-family="JetBrains Mono" font-size="6" fill="#c0392b" font-weight="600">β</text>
+    </svg>
+    <div>
+      <h1>BEARING FORCE <span class="acc">ANALYZER</span></h1>
+      <p>Phân tích ảnh hưởng góc nghiêng bánh răng β đến tải trọng ổ đỡ</p>
+    </div>
+  </div>
+  <div class="meta">
+    <span class="badge">v1.5 · Gear Helix</span>
+    <span class="badge">SI · mm·N·MPa</span>
+    <span class="badge live" id="statusBadge">● Sẵn sàng</span>
+  </div>
+</header>
+
+<main class="app-grid">
+
+  <aside class="panel inputs-panel">
+    <div class="panel-section">
+      <h3><span class="num">1</span> Mô hình tính toán</h3>
+      <div class="field full">
+        <select id="model">
+          <option value="beam-2d">Trục 2 gối 3D (Hai mặt phẳng)</option>
+        </select>
+      </div>
+      <div class="warn-box" style="margin-top:8px">
+        <strong>Quy ước β:</strong> β là góc nghiêng của răng bánh răng. β=0° là răng thẳng (Fa=0), β>0° là răng nghiêng sinh ra lực dọc trục.
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3><span class="num">2</span> Thông số hình học trục</h3>
+      <div class="field"><label>L (cách ổ)</label><input type="number" id="L" value="400" min="1" step="1"><span class="u">mm</span></div>
+      <div class="field"><label>x (từ ổ A)</label><input type="number" id="x" value="150" min="0" step="1"><span class="u">mm</span></div>
+      <div class="field"><label>d (đường kính trục)</label><input type="number" id="d" value="30" min="1" step="0.1"><span class="u">mm</span></div>
+    </div>
+
+    <div class="panel-section">
+      <h3><span class="num">3</span> Thông số truyền động & bánh răng</h3>
+      <div class="field"><label>T (mômen xoắn)</label><input type="number" id="T" value="100" min="0" step="1"><span class="u">N·m</span></div>
+      <div class="field"><label>dw (đường kính vòng)</label><input type="number" id="dw" value="100" min="1" step="1"><span class="u">mm</span></div>
+      <div class="field"><label>β (góc nghiêng răng)</label><input type="number" id="beta" value="20" min="0" max="45" step="0.5"><span class="u">°</span></div>
+      <div class="field"><label>α (góc ăn khớp)</label><input type="number" id="alpha" value="20" min="0" max="45" step="0.5"><span class="u">°</span></div>
+      <div class="field"><label>Kd (hệ số động)</label><input type="number" id="Kd" value="1.0" min="0.1" step="0.1"><span class="u">–</span></div>
+    </div>
+
+    <div class="panel-section">
+      <h3><span class="num">4</span> Thông số ổ đỡ</h3>
+      <div class="field full">
+        <select id="bearingType">
+          <option value="radial">Ổ đỡ hướng kính</option>
+          <option value="angular">Ổ tiếp xúc góc</option>
+          <option value="thrust">Ổ chặn</option>
+        </select>
+      </div>
+      <div class="field full">
+        <select id="axialBearing">
+          <option value="A">Ổ A chịu lực dọc trục (định vị)</option>
+          <option value="B">Ổ B chịu lực dọc trục (định vị)</option>
+          <option value="none">Không có ổ chặn (trục tự do)</option>
+        </select>
+      </div>
+      <div class="field"><label>Giới hạn [P]</label><input type="number" id="Plimit" value="0" min="0" step="10"><span class="u">N</span></div>
+    </div>
+
+    <div class="panel-section">
+      <h3><span class="num">5</span> Vật liệu (cho độ võng)</h3>
+      <div class="field"><label>E (mođun)</label><input type="number" id="E" value="210" min="1" step="1"><span class="u">GPa</span></div>
+      <label class="check"><input type="checkbox" id="enableDeflection"> Kích hoạt tính độ võng</label>
+    </div>
+
+    <div class="panel-section">
+      <h3><span class="num">6</span> Điều khiển góc β</h3>
+      <div class="beta-box">
+        <div class="beta-display">
+          <span class="lbl">Góc nghiêng răng</span>
+          <span class="val mono" id="betaDisplay">20°</span>
+        </div>
+        <input type="range" id="betaSlider" min="0" max="45" value="20" step="0.5">
+        <div class="beta-btns">
+          <button id="betaDec">−1°</button>
+          <button id="betaInc">+1°</button>
+          <button id="betaPlay">Quét</button>
+          <button id="betaReset">Đặt lại</button>
+        </div>
+        <label class="check" style="margin-top:8px"><input type="checkbox" id="compareMode"> So sánh với β₂</label>
+        <div class="field"><label>β₂ (so sánh)</label><input type="number" id="beta2" value="10" min="0" max="45" step="0.5"><span class="u">°</span></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3><span class="num">7</span> Hiển thị biểu đồ</h3>
+      <label class="check"><input type="checkbox" id="showLabels" checked> Nhãn lực và trị số</label>
+      <label class="check"><input type="checkbox" id="showVectors" checked> Vectơ lực</label>
+      <label class="check"><input type="checkbox" id="showDimensions" checked> Kích thước L, x</label>
+      <label class="check"><input type="checkbox" id="showGrid" checked> Lưới đồ thị</label>
+      <label class="check"><input type="checkbox" id="showFill" checked> Tô vùng biểu đồ</label>
+      <div class="field full" style="margin-top:6px">
+        <select id="forceUnit">
+          <option value="N">Đơn vị lực: N</option>
+          <option value="kN">Đơn vị lực: kN</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="action-row">
+        <button class="primary" id="btnCalc">Tính toán</button>
+        <button id="btnSample">Mẫu</button>
+      </div>
+      <div class="action-row">
+        <button id="btnCSV">Xuất CSV</button>
+        <button id="btnPrint">In PDF</button>
+      </div>
+    </div>
+  </aside>
+
+  <section class="panel diagrams-panel">
+    <div class="diagrams-header">
+      <h2><span class="dot"></span> SƠ ĐỒ NỘI LỰC VÀ TẢI TRỌNG TRỤC</h2>
+      <div class="diag-toolbar">
+        <label><input type="checkbox" id="autoScale" checked> Auto-scale Y</label>
+        <label><input type="checkbox" id="showCursor" checked> Con trỏ</label>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-muted)" id="modelLabel">TRỤC 3D · HAI MẶT PHẲNG</span>
+      </div>
+    </div>
+
+    <div class="diagram-stack">
+      <div class="diag-box">
+        <div class="diag-title">
+          <span>A. LOAD DIAGRAM — SƠ ĐỒ TẢI TRỌNG BÁNH RĂNG</span>
+          <span class="legend">
+            <span><i style="background:#c0392b"></i>Ft</span>
+            <span><i style="background:#e67e22"></i>Fr</span>
+            <span><i style="background:#8e44ad"></i>Fa</span>
+            <span><i style="background:#117a65"></i>R_A</span>
+            <span><i style="background:#b9770e"></i>R_B</span>
+          </span>
+        </div>
+        <div class="diag-content">
+          <div class="zoom-controls">
+            <button onclick="zoomDiagram('loadDiagram', 1.2)">+</button>
+            <button onclick="zoomDiagram('loadDiagram', 0.8)">−</button>
+            <button onclick="zoomDiagram('loadDiagram', 0)">⟲</button>
+          </div>
+          <svg class="diag-svg" id="loadDiagram" viewBox="0 0 800 340"></svg>
+        </div>
+      </div>
+
+      <div class="diag-box">
+        <div class="diag-title">
+          <span>B. SHEAR FORCE DIAGRAM — LỰC CẮT V(x)</span>
+          <span class="legend">
+            <span><i style="background:#e67e22"></i>V_y (Fr)</span>
+            <span><i style="background:#c0392b"></i>V_z (Ft)</span>
+          </span>
+        </div>
+        <div class="diag-content">
+          <div class="zoom-controls">
+            <button onclick="zoomDiagram('shearDiagram', 1.2)">+</button>
+            <button onclick="zoomDiagram('shearDiagram', 0.8)">−</button>
+            <button onclick="zoomDiagram('shearDiagram', 0)">⟲</button>
+          </div>
+          <svg class="diag-svg" id="shearDiagram" viewBox="0 0 800 180"></svg>
+        </div>
+      </div>
+
+      <div class="diag-box">
+        <div class="diag-title">
+          <span>C. BENDING MOMENT DIAGRAM — MÔMEN UỐN M(x)</span>
+          <span class="legend">
+            <span><i style="background:#e67e22"></i>Mz</span>
+            <span><i style="background:#c0392b"></i>My</span>
+            <span><i style="background:#4d5d53"></i>Mb tổng hợp</span>
+          </span>
+        </div>
+        <div class="diag-content">
+          <div class="zoom-controls">
+            <button onclick="zoomDiagram('momentDiagram', 1.2)">+</button>
+            <button onclick="zoomDiagram('momentDiagram', 0.8)">−</button>
+            <button onclick="zoomDiagram('momentDiagram', 0)">⟲</button>
+          </div>
+          <svg class="diag-svg" id="momentDiagram" viewBox="0 0 800 180"></svg>
+        </div>
+      </div>
+
+      <div class="diag-box" id="deflectionBox" style="display:none">
+        <div class="diag-title">
+          <span>D. DEFLECTION DIAGRAM — ĐỘ VÕNG y(x)</span>
+          <span class="tag">mm</span>
+        </div>
+        <div class="diag-content">
+          <div class="zoom-controls">
+            <button onclick="zoomDiagram('deflectionDiagram', 1.2)">+</button>
+            <button onclick="zoomDiagram('deflectionDiagram', 0.8)">−</button>
+            <button onclick="zoomDiagram('deflectionDiagram', 0)">⟲</button>
+          </div>
+          <svg class="diag-svg" id="deflectionDiagram" viewBox="0 0 800 180"></svg>
+        </div>
+      </div>
+      <div id="diagWarning" style="display:none"></div>
+    </div>
+  </section>
+
+  <aside class="panel results-panel">
+    <div class="rcard">
+      <h4><span class="dot" style="background:#c0392b"></span> LỰC TÁC DỤNG LÊN RĂNG</h4>
+      <div class="rgrid">
+        <div class="ritem"><span class="l">Ft (lực vòng)</span><span class="v red mono" id="rFt">–</span></div>
+        <div class="ritem"><span class="l">Fr (lực hướng tâm)</span><span class="v amber mono" id="rFr">–</span></div>
+        <div class="ritem"><span class="l">Fa (lực dọc trục)</span><span class="v purple mono" id="rFa">–</span></div>
+        <div class="ritem"><span class="l">β (góc nghiêng)</span><span class="v mono" id="rBeta">–</span></div>
+      </div>
+    </div>
+
+    <div class="rcard">
+      <h4><span class="dot" style="background:#117a65"></span> PHẢN LỰC Ổ A</h4>
+      <div class="rgrid">
+        <div class="ritem"><span class="l">RAx (dọc trục)</span><span class="v teal mono" id="rRAx">–</span></div>
+        <div class="ritem"><span class="l">RAy (hướng kính y)</span><span class="v teal mono" id="rRAy">–</span></div>
+        <div class="ritem"><span class="l">RAz (hướng kính z)</span><span class="v teal mono" id="rRAz">–</span></div>
+        <div class="ritem"><span class="l">Fr_A (hướng kính)</span><span class="v teal mono" id="rFrA">–</span></div>
+        <div class="ritem"><span class="l">Fa_A (dọc trục)</span><span class="v teal mono" id="rFaA">–</span></div>
+        <div class="ritem"><span class="l">RA (hợp)</span><span class="v teal mono" id="rRAtot">–</span></div>
+      </div>
+    </div>
+
+    <div class="rcard">
+      <h4><span class="dot" style="background:#b9770e"></span> PHẢN LỰC Ổ B</h4>
+      <div class="rgrid">
+        <div class="ritem"><span class="l">RBx (dọc trục)</span><span class="v amber mono" id="rRBx">–</span></div>
+        <div class="ritem"><span class="l">RBy (hướng kính y)</span><span class="v amber mono" id="rRBy">–</span></div>
+        <div class="ritem"><span class="l">RBz (hướng kính z)</span><span class="v amber mono" id="rRBz">–</span></div>
+        <div class="ritem"><span class="l">Fr_B (hướng kính)</span><span class="v amber mono" id="rFrB">–</span></div>
+        <div class="ritem"><span class="l">Fa_B (dọc trục)</span><span class="v amber mono" id="rFaB">–</span></div>
+        <div class="ritem"><span class="l">RB (hợp)</span><span class="v amber mono" id="rRBtot">–</span></div>
+      </div>
+    </div>
+
+    <div class="rcard">
+      <h4><span class="dot" style="background:#4d5d53"></span> GIÁ TRỊ LỚN NHẤT</h4>
+      <div class="rgrid">
+        <div class="ritem"><span class="l">V_max</span><span class="v sage mono" id="rVmax">–</span></div>
+        <div class="ritem"><span class="l">M_max tổng hợp</span><span class="v sage mono" id="rMmax">–</span></div>
+        <div class="ritem"><span class="l">y_max (võng)</span><span class="v slate mono" id="rYmax">–</span></div>
+        <div class="ritem"><span class="l">Tại x =</span><span class="v sage mono" id="rMmaxX">–</span></div>
+      </div>
+    </div>
+
+    <div class="rcard">
+      <h4><span class="dot" style="background:#5d6d7e"></span> CON TRỎ TƯƠNG TÁC</h4>
+      <div class="hover-info" id="hoverInfo">
+        <div class="hempty">Di chuyển chuột lên biểu đồ để xem giá trị tại x</div>
+      </div>
+    </div>
+
+    <div class="rcard">
+      <h4><span class="dot" style="background:#c0392b"></span> KIỂM TRA CÂN BẰNG</h4>
+      <div class="rgrid">
+        <div class="ritem"><span class="l">ΣFx</span><span class="v mono" id="eqFx">–</span></div>
+        <div class="ritem"><span class="l">ΣFy</span><span class="v mono" id="eqFy">–</span></div>
+        <div class="ritem"><span class="l">ΣFz</span><span class="v mono" id="eqFz">–</span></div>
+        <div class="ritem"><span class="l">ΣM_A(z)</span><span class="v mono" id="eqMAz">–</span></div>
+        <div class="ritem"><span class="l">ΣM_A(y)</span><span class="v mono" id="eqMAy">–</span></div>
+      </div>
+      <div id="eqStatus"></div>
+    </div>
+
+    <div class="rcard">
+      <h4><span class="dot" style="background:#117a65"></span> PHÂN TÍCH NHẬN XÉT</h4>
+      <div class="analysis" id="analysisText"></div>
+    </div>
+  </aside>
+</main>
+
+<section class="survey-panel">
+  <h2>KHẢO SÁT ẢNH HƯỞNG GÓC NGHIÊNG RĂNG β</h2>
+  <p class="sub">Tính toán tải trọng tại các ổ đỡ khi β thay đổi. Tự động xác định giá trị lớn nhất, nhỏ nhất và góc tương ứng.</p>
+  <div class="survey-controls">
+    <div class="field"><label>β min</label><input type="number" id="betaMin" value="0" min="0" max="45" step="0.5"><span class="u">°</span></div>
+    <div class="field"><label>β max</label><input type="number" id="betaMax" value="35" min="0" max="45" step="0.5"><span class="u">°</span></div>
+    <div class="field"><label>Δβ</label><input type="number" id="betaStep" value="5" min="0.5" step="0.5"><span class="u">°</span></div>
+    <button class="secondary" id="btnSurvey">Khảo sát β</button>
+    <button id="btnSurveyClear">Xóa kết quả</button>
+  </div>
+  <div class="survey-grid">
+    <div class="chart-container">
+      <canvas id="surveyChart"></canvas>
+      <div id="chartLoading" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(251,248,240,.85);font-size:11px;color:var(--ink-muted)">Đang tính toán...</div>
+    </div>
+    <div class="table-wrap">
+      <table id="surveyTable">
+        <thead>
+          <tr>
+            <th>β(°)</th><th>Ft</th><th>Fr</th><th>Fa</th><th>Fr_A</th><th>Fa_A</th><th>Fr_B</th><th>Fa_B</th><th>RA</th><th>RB</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+  <div id="surveyAnalysis" style="margin-top:14px"></div>
+</section>
+
+<section class="formulas-panel">
+  <h2>CÔNG THỨC VÀ GIẢ THIẾT TÍNH TOÁN</h2>
+  <p class="sub">Toàn bộ kết quả được suy ra từ phương trình cân bằng tĩnh và phương trình nội lực. Lực tác dụng lên bánh răng nghiêng được phân tích đầy đủ.</p>
+  <div class="fgrid">
+    <div class="fcard">
+      <h4>1. Lực tác dụng lên bánh răng nghiêng</h4>
+      <div class="eq">Ft = 2·T / dw<br>Fr = Ft · tan(α) / cos(β)<br>Fa = Ft · tan(β)</div>
+      <div class="desc">T: Mômen xoắn (N·m). dw: Đường kính vòng chia (mm). β: Góc nghiêng răng. α: Góc ăn khớp (thường 20°). Ft là lực vòng, Fr là lực hướng tâm, Fa là lực dọc trục.</div>
+    </div>
+    <div class="fcard t6">
+      <h4>2. Phản lực gối (Dầm 2 gối tựa)</h4>
+      <div class="eq">RAy = Fr·(L−x)/L, RBy = Fr·x/L<br>RAz = Ft·(L−x)/L, RBz = Ft·x/L</div>
+      <div class="desc">Fr nằm trong mặt phẳng x-y (thẳng đứng). Ft nằm trong mặt phẳng x-z (nằm ngang). Lực dọc trục Fa được chịu bởi một ổ định vị (A hoặc B).</div>
+    </div>
+    <div class="fcard t3">
+      <h4>3. Lực cắt V(x) trong hai mặt phẳng</h4>
+      <div class="eq">V_y(x') = RAy, 0&lt;x'&lt;x<br>V_z(x') = RAz, 0&lt;x'&lt;x</div>
+      <div class="desc">Bước nhảy −Fr tại x'=x trong mặt phẳng x-y. Bước nhảy −Ft tại x'=x trong mặt phẳng x-z. Lực cắt tổng hợp V = √(Vy² + Vz²).</div>
+    </div>
+    <div class="fcard t4">
+      <h4>4. Mômen uốn M(x) tổng hợp</h4>
+      <div class="eq">M_z = RAy·x', M_y = RAz·x'<br>M_b = √(M_y² + M_z²)</div>
+      <div class="desc">M_z từ tải trọng trong mặt phẳng x-y (do Fr). M_y từ tải trọng trong mặt phẳng x-z (do Ft). Mômen uốn tổng hợp lớn nhất tại x'=x.</div>
+    </div>
+    <div class="fcard">
+      <h4>5. Độ võng y(x) — Euler-Bernoulli</h4>
+      <div class="eq">P = √(Ft² + Fr²)<br>y = −P·b·x'·(L²−b²−x'²)/(6·L·EI)</div>
+      <div class="desc">Tính độ võng do hợp lực hướng kính P tác dụng lên trục. I = πd⁴/64, E bằng mođun đàn hồi. Bỏ qua ảnh hưởng của lực dọc trục đến độ võng.</div>
+    </div>
+    <div class="fcard t2">
+      <h4>6. Tải trọng ổ lăn</h4>
+      <div class="eq">Fr_A = √(RAy²+RAz²)<br>Fa_A = |RAx|<br>P = X·Fr + Y·Fa</div>
+      <div class="desc">Tải hướng kính Fr_A và tải dọc trục Fa_A tác dụng lên ổ A. Tải tương đương động P chỉ tính khi đã có hệ số X, Y của ổ.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p><strong>BEARING FORCE ANALYZER</strong> — Ứng dụng phân tích cơ học kỹ thuật chạy hoàn toàn trên trình duyệt.</p>
+  <p class="mono">All computations performed locally · No external API · Results derived from equilibrium equations</p>
+</footer>
+
+<script>
+const state = {
+  L:400, x:150, d:30,
+  T:100, dw:100, beta_deg:20, alpha:20, Kd:1.0,
+  bearingType:'radial', axialBearing:'A', Plimit:0,
+  E:210, enableDeflection:false,
+  betaMin:0, betaMax:35, betaStep:5,
+  showLabels:true, showVectors:true, showDimensions:true,
+  showGrid:true, showFill:true, showCursor:true, autoScale:true,
+  compareMode:false, beta2:10,
+  forceUnit:'N',
+  cursorX:null,
+  isPlaying:false, animationId:null, animationDir:1,
+  surveyData:null,
+  zoomScales: {}
+};
+
+function $(id){return document.getElementById(id)}
+function fmt(v, dec=1){
+  if(v===null||v===undefined||isNaN(v)) return '–';
+  if(Math.abs(v)<1e-9) return '0';
+  const a = Math.abs(v);
+  if(a>=1e4||a<0.01) return v.toExponential(2);
+  return v.toFixed(dec);
+}
+function fmtUnit(v, unit='N'){
+  if(v===null||v===undefined||isNaN(v)) return '–';
+  if(state.forceUnit==='kN') return fmt(v/1000, 3)+' kN';
+  return fmt(v, 1)+' '+unit;
+}
+function fmtM(v){
+  if(v===null||v===undefined||isNaN(v)) return '–';
+  return fmt(v, 1)+' N·mm';
+}
+function deg2rad(d){return d*Math.PI/180}
+
+function zoomDiagram(id, factor) {
+  const svg = $(id);
+  if(!svg) return;
+  if(factor === 0) {
+    state.zoomScales[id] = 1;
+  } else {
+    const current = state.zoomScales[id] || 1;
+    state.zoomScales[id] = Math.max(0.5, Math.min(4, current * factor));
+  }
+  const scale = state.zoomScales[id];
+  svg.style.transform = `scale(${scale})`;
+  svg.style.transformOrigin = 'center center';
+}
+
+function compute(cfg){
+  const T = cfg.T, dw = cfg.dw;
+  const beta = deg2rad(cfg.beta_deg), alpha = deg2rad(cfg.alpha);
+  let Ft = (2 * T * 1000) / dw;
+  let Fr = Ft * Math.tan(alpha) / Math.cos(beta);
+  let Fa = Ft * Math.tan(beta);
+  Ft *= cfg.Kd; Fr *= cfg.Kd; Fa *= cfg.Kd;
+  const Fx = Fa, Fy = Fr, Fz = Ft;
+  const L = cfg.L, x = cfg.x;
+  const RAy = Fy * (L - x) / L, RBy = Fy * x / L;
+  const RAz = Fz * (L - x) / L, RBz = Fz * x / L;
+  let RAx = 0, RBx = 0;
+  if(cfg.axialBearing === 'A') RAx = Fx;
+  else if(cfg.axialBearing === 'B') RBx = Fx;
+  const RA_radial = Math.sqrt(RAy*RAy + RAz*RAz);
+  const RB_radial = Math.sqrt(RBy*RBy + RBz*RBz);
+  const RA_total = Math.sqrt(RA_radial*RA_radial + RAx*RAx);
+  const RB_total = Math.sqrt(RB_radial*RB_radial + RBx*RBx);
+  const Fr_A = RA_radial, Fa_A = Math.abs(RAx);
+  const Fr_B = RB_radial, Fa_B = Math.abs(RBx);
+  const Mmax_z = Math.abs(RAy) * x, Mmax_y = Math.abs(RAz) * x;
+  const Mmax_b = Math.sqrt(Mmax_z*Mmax_z + Mmax_y*Mmax_y);
+  const Vmax_y = Math.max(Math.abs(RAy), Math.abs(RBy));
+  const Vmax_z = Math.max(Math.abs(RAz), Math.abs(RBz));
+  const sumFx = RAx + RBx - Fx, sumFy = RAy + RBy - Fy, sumFz = RAz + RBz - Fz;
+  const sumMA_z = Fy * x - RBy * L, sumMA_y = Fz * x - RBz * L;
+  let deflection = null;
+  if(cfg.enableDeflection && cfg.E > 0 && cfg.d > 0 && (Math.abs(Fy) > 1e-6 || Math.abs(Fz) > 1e-6)){
+    const E_Nmm2 = cfg.E * 1000, I = Math.PI * Math.pow(cfg.d, 4) / 64, EI = E_Nmm2 * I;
+    const a = x, b = L - x, P = Math.sqrt(Fy*Fy + Fz*Fz);
+    const sample = (xp) => {
+      if(Math.abs(P) < 1e-9) return 0;
+      if(xp <= a + 1e-9) return -P * b * xp * (L*L - b*b - xp*xp) / (6 * L * EI);
+      return -P * a * (L - xp) * (2 * L * xp - a*a - xp*xp) / (6 * L * EI);
+    };
+    let maxD = 0, maxAt = 0;
+    for(let i = 1; i < 500; i++){
+      const xp = (i / 500) * L, y = sample(xp);
+      if(Math.abs(y) > Math.abs(maxD)){ maxD = y; maxAt = xp; }
+    }
+    deflection = { E: E_Nmm2, I, EI, sample, maxY: maxD, maxYAt: maxAt };
+  }
+  return {
+    Ft, Fr, Fa, F: Math.sqrt(Ft*Ft + Fr*Fr + Fa*Fa),
+    Fx, Fy, Fz, beta:cfg.beta_deg,
+    RAx, RAy, RAz, RA_radial, RA_total,
+    RBx, RBy, RBz, RB_radial, RB_total,
+    Fr_A, Fa_A, Fr_B, Fa_B,
+    Mmax_z, Mmax_y, Mmax_b, MmaxAt: x, Vmax_y, Vmax_z,
+    deflection, equilibrium: { sumFx, sumFy, sumFz, sumMA_z, sumMA_y }
+  };
+}
+
+function shearY(xp, res, cfg){
+  if(xp < cfg.x - 1e-6) return res.RAy;
+  if(xp > cfg.x + 1e-6) return -res.RBy;
+  return (res.RAy - res.RBy) / 2;
+}
+function shearZ(xp, res, cfg){
+  if(xp < cfg.x - 1e-6) return res.RAz;
+  if(xp > cfg.x + 1e-6) return -res.RBz;
+  return (res.RAz - res.RBz) / 2;
+}
+function momentZ(xp, res, cfg){
+  if(xp <= cfg.x + 1e-6) return res.RAy * xp;
+  return res.RBy * (cfg.L - xp);
+}
+function momentY(xp, res, cfg){
+  if(xp <= cfg.x + 1e-6) return res.RAz * xp;
+  return res.RBz * (cfg.L - xp);
+}
+function momentTotal(xp, res, cfg){
+  return Math.sqrt(momentY(xp, res, cfg)**2 + momentZ(xp, res, cfg)**2);
+}
+
+function arrow(x1, y1, x2, y2, color, w=2){
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  if(len < 1) return '';
+  const ux = dx/len, uy = dy/len;
+  const headLen = 9, headW = 4.5;
+  const px = -uy, py = ux;
+  const h1x = x2 - ux*headLen + px*headW;
+  const h1y = y2 - uy*headLen + py*headW;
+  const h2x = x2 - ux*headLen - px*headW;
+  const h2y = y2 - uy*headLen - py*headW;
+  return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${w}" stroke-linecap="round"/>
+    <polygon points="${x2},${y2} ${h1x},${h1y} ${h2x},${h2y}" fill="${color}"/>`;
+}
+
+function labelBox(x, y, text, color) {
+  const w = text.length * 7 + 12;
+  return `<rect x="${x - w/2}" y="${y - 8}" width="${w}" height="16" fill="#fefdf8" opacity="0.95" rx="2"/>
+          <text x="${x}" y="${y + 4}" text-anchor="middle" font-family="JetBrains Mono" font-size="11" font-weight="600" fill="${color}">${text}</text>`;
+}
+
+function dimLine(x1, y1, x2, y2, label, color='#5a5043'){
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.sqrt(dx*dx+dy*dy);
+  if(len < 1) return '';
+  const ux = dx/len, uy = dy/len;
+  const px = -uy, py = ux;
+  const ext = 4;
+  let s = '';
+  s += `<line x1="${x1+px*ext}" y1="${y1+py*ext}" x2="${x1-px*ext}" y2="${y1-py*ext}" stroke="${color}" stroke-width="0.6"/>`;
+  s += `<line x1="${x2+px*ext}" y1="${y2+py*ext}" x2="${x2-px*ext}" y2="${y2-py*ext}" stroke="${color}" stroke-width="0.6"/>`;
+  s += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="0.8"/>`;
+  s += `<polygon points="${x1+ux*4},${y1+uy*4} ${x1+ux*4+px*2.5},${y1+uy*4+py*2.5} ${x1+ux*4-px*2.5},${y1+uy*4-py*2.5}" fill="${color}"/>`;
+  s += `<polygon points="${x2-ux*4},${y2-uy*4} ${x2-ux*4+px*2.5},${y2-uy*4+py*2.5} ${x2-ux*4-px*2.5},${y2-uy*4-py*2.5}" fill="${color}"/>`;
+  const mx = (x1+x2)/2 + px*12, my = (y1+y2)/2 + py*12;
+  s += `<text x="${mx}" y="${my+3}" text-anchor="middle" font-family="JetBrains Mono" font-size="10" fill="${color}">${label}</text>`;
+  return s;
+}
+
+function drawLoadDiagram(){
+  const svg = $('loadDiagram');
+  const cfg = readConfig();
+  const res = compute(cfg);
+  const W = 800, H = 340;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const m = { top: 80, right: 70, bottom: 80, left: 60 };
+  const plotW = W - m.left - m.right, plotH = H - m.top - m.bottom;
+  const L = cfg.L;
+  const xPx = xx => m.left + (xx / L) * plotW;
+  const shaftY = m.top + plotH * 0.6;
+  const maxF = Math.max(Math.abs(res.Ft), Math.abs(res.Fr), Math.abs(res.Fa), Math.abs(res.RAy), Math.abs(res.RBy), Math.abs(res.RAz), Math.abs(res.RBz), 1);
+  const fScale = (plotH * 0.18) / maxF;
+
+  let html = '';
+  html += `<rect x="${m.left}" y="${m.top}" width="${plotW}" height="${plotH}" fill="#fefdf8"/>`;
+  if(state.showGrid){
+    for(let i = 0; i <= 10; i++){
+      const gx = m.left + (i/10)*plotW;
+      html += `<line x1="${gx}" y1="${m.top}" x2="${gx}" y2="${m.top+plotH}" stroke="#ece5d2" stroke-width="0.5"/>`;
+    }
+    for(let i = 0; i <= 5; i++){
+      const gy = m.top + (i/5)*plotH;
+      html += `<line x1="${m.left}" y1="${gy}" x2="${m.left+plotW}" y2="${gy}" stroke="#ece5d2" stroke-width="0.5"/>`;
+    }
+  }
+
+  const sT = 8;
+  const Ax = xPx(0), Bx = xPx(L), Fxx = xPx(cfg.x);
+  html += `<rect x="${Ax}" y="${shaftY-sT/2}" width="${Bx-Ax}" height="${sT}" fill="#3a3530" stroke="#2a2520" stroke-width="0.6"/>`;
+  
+  // Vẽ bánh răng nghiêng
+  const gearW = 30, gearH = 45;
+  html += `<rect x="${Fxx - gearW/2}" y="${shaftY - gearH/2}" width="${gearW}" height="${gearH}" fill="#e6dcc5" stroke="#8a7e6a" stroke-width="1.5"/>`;
+  const betaRad = deg2rad(cfg.beta_deg);
+  for(let i = 0; i < 4; i++) {
+    const yStart = shaftY - gearH/2 + 5 + i * (gearH-10)/3;
+    const yEnd = shaftY + gearH/2 - 5;
+    const xStart = Fxx - gearW/2 + 2;
+    const dx = (yEnd - yStart) * Math.tan(betaRad);
+    const xEnd = xStart + dx;
+    let x2 = xEnd, y2 = yEnd;
+    if (xEnd > Fxx + gearW/2 - 2) {
+      x2 = Fxx + gearW/2 - 2;
+      y2 = yStart + (x2 - xStart) / Math.tan(betaRad);
+    } else if (xEnd < Fxx - gearW/2 + 2) {
+      x2 = Fxx - gearW/2 + 2;
+      y2 = yStart + (x2 - xStart) / Math.tan(betaRad);
+    }
+    html += `<line x1="${xStart}" y1="${yStart}" x2="${x2}" y2="${y2}" stroke="#6b5d45" stroke-width="1.5"/>`;
+  }
+  
+  // Vẽ ổ đỡ
+  html += drawBearing(Ax, shaftY + sT/2, '#117a65', 'A');
+  html += drawBearing(Bx, shaftY + sT/2, '#b9770e', 'B');
+
+  // --- ĐIỂM ĐẶT LỰC TẠI BÁNH RĂNG (Cùng 1 điểm) ---
+  const P_y = shaftY - 80; 
+  if(state.showVectors) {
+    html += `<line x1="${Fxx}" y1="${shaftY - gearH/2 - 2}" x2="${Fxx}" y2="${P_y}" stroke="#8a7e6a" stroke-width="1" stroke-dasharray="4,3"/>`;
+    html += `<circle cx="${Fxx}" cy="${P_y}" r="3.5" fill="#2a241d"/>`;
+
+    // Fr (Hướng tâm, vuông góc xuống - điểm đặt ở trên, mũi tên đi xuống)
+    if(Math.abs(res.Fr) > 0.01){
+      const L_f = Math.max(35, Math.abs(res.Fr) * fScale);
+      const headX = Fxx, headY = P_y + L_f;
+      html += arrow(Fxx, P_y, headX, headY, '#e67e22', 2.5);
+      if(state.showLabels) html += labelBox(Fxx, headY + 16, 'Fr=' + fmtUnit(res.Fr), '#e67e22');
+    }
+    
+    // Ft (Lực vòng, nghiêng 45 độ lên-trái để thể hiện trục z - điểm đặt ở dưới, mũi tên đi lên-trái)
+    if(Math.abs(res.Ft) > 0.01){
+      const L_f = Math.max(35, Math.abs(res.Ft) * fScale);
+      const headX = Fxx - L_f * Math.cos(deg2rad(45));
+      const headY = P_y - L_f * Math.sin(deg2rad(45));
+      html += arrow(Fxx, P_y, headX, headY, '#c0392b', 2.5);
+      if(state.showLabels) html += labelBox(headX - 35, headY - 5, 'Ft=' + fmtUnit(res.Ft), '#c0392b');
+    }
+    
+    // Fa (Lực dọc trục, nằm ngang sang phải - điểm đặt bên trái, mũi tên đi phải)
+    if(Math.abs(res.Fa) > 0.01){
+      const L_f = Math.max(35, Math.abs(res.Fa) * fScale);
+      const headX = Fxx + L_f, headY = P_y;
+      html += arrow(Fxx, P_y, headX, headY, '#8e44ad', 2.5);
+      if(state.showLabels) html += labelBox(headX + 35, headY, 'Fa=' + fmtUnit(res.Fa), '#8e44ad');
+    }
+  }
+
+  // --- PHẢN LỰC TẠI Ổ A ---
+  if(state.showVectors) {
+    const PA_y = shaftY - 50;
+    html += `<line x1="${Ax}" y1="${shaftY - sT/2}" x2="${Ax}" y2="${PA_y}" stroke="#8a7e6a" stroke-width="1" stroke-dasharray="4,3"/>`;
+    html += `<circle cx="${Ax}" cy="${PA_y}" r="3" fill="#2a241d"/>`;
+
+    // RAy (Thẳng đứng, dương hướng lên)
+    if(Math.abs(res.RAy) > 0.01){
+      const L_r = Math.max(25, Math.abs(res.RAy) * fScale);
+      const dir = res.RAy > 0 ? -1 : 1; 
+      const headX = Ax, headY = PA_y + dir * L_r;
+      html += arrow(Ax, PA_y, headX, headY, '#117a65', 2);
+      if(state.showLabels) html += labelBox(Ax - 35, headY, 'RAy=' + fmtUnit(res.RAy), '#117a65');
+    }
+    // RAz (Nghiêng 45 độ lên-phải)
+    if(Math.abs(res.RAz) > 0.01){
+      const L_r = Math.max(25, Math.abs(res.RAz) * fScale);
+      const dirX = res.RAz > 0 ? 1 : -1;
+      const dirY = -1;
+      const headX = Ax + dirX * L_r * Math.cos(deg2rad(45));
+      const headY = PA_y + dirY * L_r * Math.sin(deg2rad(45));
+      html += arrow(Ax, PA_y, headX, headY, '#16a085', 2);
+      if(state.showLabels) html += labelBox(headX + (dirX === 1 ? 35 : -35), headY - 5, 'RAz=' + fmtUnit(res.RAz), '#16a085');
+    }
+    // RAx (Nằm ngang)
+    if(Math.abs(res.RAx) > 0.01){
+      const L_r = Math.max(25, Math.abs(res.RAx) * fScale);
+      const dir = res.RAx > 0 ? 1 : -1;
+      const headX = Ax + dir * L_r, headY = PA_y;
+      html += arrow(Ax, PA_y, headX, headY, '#0e6655', 2);
+      if(state.showLabels) html += labelBox(headX, headY + 16, 'RAx=' + fmtUnit(res.RAx), '#0e6655');
+    }
+  }
+
+  // --- PHẢN LỰC TẠI Ổ B ---
+  if(state.showVectors) {
+    const PB_y = shaftY - 50;
+    html += `<line x1="${Bx}" y1="${shaftY - sT/2}" x2="${Bx}" y2="${PB_y}" stroke="#8a7e6a" stroke-width="1" stroke-dasharray="4,3"/>`;
+    html += `<circle cx="${Bx}" cy="${PB_y}" r="3" fill="#2a241d"/>`;
+
+    // RBy (Thẳng đứng)
+    if(Math.abs(res.RBy) > 0.01){
+      const L_r = Math.max(25, Math.abs(res.RBy) * fScale);
+      const dir = res.RBy > 0 ? -1 : 1;
+      const headX = Bx, headY = PB_y + dir * L_r;
+      html += arrow(Bx, PB_y, headX, headY, '#b9770e', 2);
+      if(state.showLabels) html += labelBox(Bx + 35, headY, 'RBy=' + fmtUnit(res.RBy), '#b9770e');
+    }
+    // RBz (Nghiêng 45 độ lên-trái)
+    if(Math.abs(res.RBz) > 0.01){
+      const L_r = Math.max(25, Math.abs(res.RBz) * fScale);
+      const dirX = res.RBz > 0 ? 1 : -1;
+      const dirY = -1;
+      const headX = Bx + dirX * L_r * Math.cos(deg2rad(45));
+      const headY = PB_y + dirY * L_r * Math.sin(deg2rad(45));
+      html += arrow(Bx, PB_y, headX, headY, '#d4a017', 2);
+      if(state.showLabels) html += labelBox(headX + (dirX === 1 ? 35 : -35), headY - 5, 'RBz=' + fmtUnit(res.RBz), '#d4a017');
+    }
+    // RBx (Nằm ngang)
+    if(Math.abs(res.RBx) > 0.01){
+      const L_r = Math.max(25, Math.abs(res.RBx) * fScale);
+      const dir = res.RBx > 0 ? 1 : -1;
+      const headX = Bx + dir * L_r, headY = PB_y;
+      html += arrow(Bx, PB_y, headX, headY, '#8c5d0b', 2);
+      if(state.showLabels) html += labelBox(headX, headY + 16, 'RBx=' + fmtUnit(res.RBx), '#8c5d0b');
+    }
+  }
+
+  // Kích thước
+  if(state.showDimensions){
+    const dimY = shaftY + sT/2 + 50;
+    html += dimLine(Ax, dimY, Bx, dimY, `L = ${cfg.L} mm`);
+    const xDimY = shaftY + 35; 
+    html += dimLine(Ax, xDimY, Fxx, xDimY, `x = ${cfg.x} mm`, '#8a7e6a');
+  }
+
+  if(state.cursorX !== null && state.showCursor){
+    const cx = xPx(state.cursorX);
+    html += `<line x1="${cx}" y1="${m.top}" x2="${cx}" y2="${m.top+plotH}" stroke="#c0392b" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>`;
+  }
+  svg.innerHTML = html;
+}
+
+function drawBearing(x, y, color, label){
+  let s = '';
+  const w = 14, h = 18;
+  s += `<polygon points="${x},${y} ${x-w},${y+h} ${x+w},${y+h}" fill="${color}" stroke="${color}" stroke-width="1" opacity="0.9"/>`;
+  s += `<line x1="${x-w-8}" y1="${y+h}" x2="${x+w+8}" y2="${y+h}" stroke="#5a5043" stroke-width="1.4"/>`;
+  for(let i = -w-6; i <= w+6; i += 4){
+    s += `<line x1="${x+i}" y1="${y+h}" x2="${x+i-4}" y2="${y+h+6}" stroke="#5a5043" stroke-width="0.8"/>`;
+  }
+  s += `<text x="${x}" y="${y+h+20}" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="${color}">${label}</text>`;
+  return s;
+}
+
+function drawGenericDiagram(svgId, options){
+  const svg = $(svgId);
+  const cfg = readConfig();
+  const res = compute(cfg);
+  const W = 800, H = options.height || 180;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const m = { top: 18, right: 50, bottom: 32, left: 60 };
+  const plotW = W - m.left - m.right, plotH = H - m.top - m.bottom;
+  const xPx = xx => m.left + (xx / cfg.L) * plotW;
+  let yMin = 0, yMax = 0;
+  const N = 300;
+  for(let i = 0; i <= N; i++){
+    const xp = (i/N) * cfg.L;
+    for(const c of options.curves){
+      if(!c.fn) continue;
+      const v = c.fn(xp, res, cfg);
+      if(v < yMin) yMin = v;
+      if(v > yMax) yMax = v;
+    }
+  }
+  if(yMax === yMin){ yMax = 1; yMin = -1; }
+  const pad = (yMax - yMin) * 0.15;
+  yMax += pad; yMin -= pad;
+  const yRange = yMax - yMin;
+  const yPx = y => m.top + plotH - ((y - yMin) / yRange) * plotH;
+  let html = '';
+  html += `<rect x="${m.left}" y="${m.top}" width="${plotW}" height="${plotH}" fill="#fefdf8"/>`;
+  if(state.showGrid){
+    for(let i = 0; i <= 10; i++){
+      const gx = m.left + (i/10)*plotW;
+      html += `<line x1="${gx}" y1="${m.top}" x2="${gx}" y2="${m.top+plotH}" stroke="#ece5d2" stroke-width="0.5"/>`;
+    }
+    for(let i = 0; i <= 4; i++){
+      const gy = m.top + (i/4)*plotH;
+      html += `<line x1="${m.left}" y1="${gy}" x2="${m.left+plotW}" y2="${gy}" stroke="#ece5d2" stroke-width="0.5"/>`;
+    }
+  }
+  if(yMin < 0 && yMax > 0){
+    const zy = yPx(0);
+    html += `<line x1="${m.left}" y1="${zy}" x2="${m.left+plotW}" y2="${zy}" stroke="#5a5043" stroke-width="1" stroke-dasharray="6,3"/>`;
+  }
+  for(let i = 0; i <= 4; i++){
+    const yVal = yMin + (i/4) * yRange;
+    const gy = yPx(yVal);
+    html += `<text x="${m.left-6}" y="${gy+3}" text-anchor="end" font-family="JetBrains Mono" font-size="9" fill="#8a7e6a">${fmt(yVal, 0)}</text>`;
+    html += `<line x1="${m.left-3}" y1="${gy}" x2="${m.left}" y2="${gy}" stroke="#5a5043" stroke-width="0.8"/>`;
+  }
+  for(let i = 0; i <= 5; i++){
+    const xVal = (i/5) * cfg.L;
+    const gx = xPx(xVal);
+    html += `<text x="${gx}" y="${m.top+plotH+14}" text-anchor="middle" font-family="JetBrains Mono" font-size="9" fill="#8a7e6a">${xVal.toFixed(0)}</text>`;
+    html += `<line x1="${gx}" y1="${m.top+plotH}" x2="${gx}" y2="${m.top+plotH+3}" stroke="#5a5043" stroke-width="0.8"/>`;
+  }
+  html += `<text x="${m.left+plotW-4}" y="${H-4}" text-anchor="end" font-family="Space Grotesk" font-size="9" fill="#5a5043" font-style="italic">x (mm)</text>`;
+  html += `<text x="${12}" y="${m.top+8}" text-anchor="start" font-family="Space Grotesk" font-size="9" fill="${options.axisColor||'#5a5043'}" font-style="italic">${options.yLabel}</text>`;
+  html += `<line x1="${m.left}" y1="${m.top}" x2="${m.left}" y2="${m.top+plotH}" stroke="#5a5043" stroke-width="1"/>`;
+  html += `<line x1="${m.left}" y1="${m.top+plotH}" x2="${m.left+plotW}" y2="${m.top+plotH}" stroke="#5a5043" stroke-width="1"/>`;
+  for(const curve of options.curves){
+    if(!curve.fn) continue;
+    const points = [];
+    for(let i = 0; i <= N; i++){
+      const xp = (i/N) * cfg.L;
+      const v = curve.fn(xp, res, cfg);
+      points.push({ x: xp, y: v });
+    }
+    if(state.showFill && curve.fill){
+      const zy = yPx(0);
+      let fillD = `M ${xPx(points[0].x)} ${zy}`;
+      for(let i = 0; i < points.length; i++){
+        fillD += ` L ${xPx(points[i].x)} ${yPx(points[i].y)}`;
+      }
+      fillD += ` L ${xPx(points[points.length-1].x)} ${zy} Z`;
+      html += `<path d="${fillD}" fill="${curve.fill}" opacity="0.18"/>`;
+    }
+    let pathD = '';
+    for(let i = 0; i < points.length; i++){
+      const px = xPx(points[i].x);
+      const py = yPx(points[i].y);
+      if(i === 0){
+        pathD = `M ${px} ${py}`;
+      } else {
+        const dv = Math.abs(points[i].y - points[i-1].y);
+        const dx = Math.abs(points[i].x - points[i-1].x);
+        if(curve.discontinuous && dv > yRange * 0.15 && dx < cfg.L * 0.01){
+          pathD += ` L ${px} ${yPx(points[i-1].y)} L ${px} ${py}`;
+        } else {
+          pathD += ` L ${px} ${py}`;
+        }
+      }
+    }
+    html += `<path d="${pathD}" fill="none" stroke="${curve.color}" stroke-width="${curve.width||2}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if(state.compareMode){
+      const cfg2 = { ...cfg, beta_deg: state.beta2 };
+      const res2 = compute(cfg2);
+      const pts2 = [];
+      for(let i = 0; i <= N; i++){
+        const xp = (i/N) * cfg.L;
+        const v = curve.fn(xp, res2, cfg2);
+        pts2.push({ x: xp, y: v });
+      }
+      let pd2 = '';
+      for(let i = 0; i < pts2.length; i++){
+        const px = xPx(pts2[i].x), py = yPx(pts2[i].y);
+        if(i === 0) pd2 = `M ${px} ${py}`;
+        else {
+          const dv = Math.abs(pts2[i].y - pts2[i-1].y);
+          const dx = Math.abs(pts2[i].x - pts2[i-1].x);
+          if(curve.discontinuous && dv > yRange * 0.15 && dx < cfg.L * 0.01){
+            pd2 += ` L ${px} ${yPx(pts2[i-1].y)} L ${px} ${py}`;
+          } else {
+            pd2 += ` L ${px} ${py}`;
+          }
+        }
+      }
+      html += `<path d="${pd2}" fill="none" stroke="${curve.color}" stroke-width="1.3" stroke-dasharray="5,3" opacity="0.5"/>`;
+    }
+  }
+  if(options.markPoints){
+    for(const pt of options.markPoints){
+      const v = pt.fn(res, cfg);
+      if(v === null || Math.abs(v) < 1e-9) continue;
+      const px = xPx(pt.x);
+      const py = yPx(v);
+      html += `<circle cx="${px}" cy="${py}" r="4" fill="${pt.color}" stroke="white" stroke-width="1.5"/>`;
+      if(state.showLabels){
+        const lblOffset = v >= 0 ? -12 : 14;
+        html += `<text x="${px+6}" y="${py+lblOffset}" font-family="JetBrains Mono" font-size="10" font-weight="600" fill="${pt.color}">${pt.label}: ${pt.fmt ? pt.fmt(v) : fmt(v)}</text>`;
+      }
+    }
+  }
+  html += `<line x1="${xPx(0)}" y1="${m.top}" x2="${xPx(0)}" y2="${m.top+plotH}" stroke="#117a65" stroke-width="0.5" stroke-dasharray="2,3" opacity="0.4"/>`;
+  html += `<line x1="${xPx(cfg.L)}" y1="${m.top}" x2="${xPx(cfg.L)}" y2="${m.top+plotH}" stroke="#b9770e" stroke-width="0.5" stroke-dasharray="2,3" opacity="0.4"/>`;
+  html += `<line x1="${xPx(cfg.x)}" y1="${m.top}" x2="${xPx(cfg.x)}" y2="${m.top+plotH}" stroke="#c0392b" stroke-width="0.5" stroke-dasharray="2,3" opacity="0.4"/>`;
+  if(state.cursorX !== null && state.showCursor){
+    const cx = xPx(state.cursorX);
+    html += `<line x1="${cx}" y1="${m.top}" x2="${cx}" y2="${m.top+plotH}" stroke="#c0392b" stroke-width="1" stroke-dasharray="3,3" opacity="0.7"/>`;
+    for(const c of options.curves){
+      if(!c.fn) continue;
+      const v = c.fn(state.cursorX, res, cfg);
+      const py = yPx(v);
+      html += `<circle cx="${cx}" cy="${py}" r="4" fill="${c.color}" stroke="white" stroke-width="1.5"/>`;
+    }
+  }
+  svg.innerHTML = html;
+}
+
+function drawAll(){
+  const cfg = readConfig();
+  if(!validate(cfg)) return;
+  drawLoadDiagram();
+  drawGenericDiagram('shearDiagram', {
+    height: 180, yLabel: 'V (N)', axisColor: '#c0392b',
+    curves: [
+      { fn: shearY, color: '#e67e22', width: 1.8, fill: 'transparent', discontinuous: true },
+      { fn: shearZ, color: '#c0392b', width: 1.8, fill: 'transparent', discontinuous: true }
+    ]
+  });
+  drawGenericDiagram('momentDiagram', {
+    height: 180, yLabel: 'M (N·mm)', axisColor: '#4d5d53',
+    curves: [
+      { fn: momentZ, color: '#e67e22', width: 1.8, fill: 'transparent' },
+      { fn: momentY, color: '#c0392b', width: 1.8, fill: 'transparent' },
+      { fn: momentTotal, color: '#4d5d53', width: 2.4, fill: '#4d5d53' }
+    ],
+    markPoints: [
+      { x: cfg.x, fn: (r,c)=>r.Mmax_b, color: '#4d5d53', label: 'M_max', fmt: v=>fmtM(v) }
+    ]
+  });
+  if(cfg.enableDeflection && cfg.E > 0 && cfg.d > 0){
+    $('deflectionBox').style.display = '';
+    drawGenericDiagram('deflectionDiagram', {
+      height: 180, yLabel: 'y (mm)', axisColor: '#5d6d7e',
+      curves: [
+        { fn: (xp, r, c) => r.deflection ? r.deflection.sample(xp) : 0, color: '#5d6d7e', width: 2, fill: '#5d6d7e' }
+      ],
+      markPoints: cfg.enableDeflection && compute(cfg).deflection ? [
+        { x: compute(cfg).deflection.maxYAt, fn: (r,c)=>r.deflection.maxY, color: '#5d6d7e', label: 'y_max', fmt: v=>fmt(v,4)+' mm' }
+      ] : []
+    });
+  } else {
+    $('deflectionBox').style.display = 'none';
+  }
+  updateResults();
+  updateAnalysis();
+  updateEquilibrium();
+}
+
+function updateResults(){
+  const cfg = readConfig();
+  const res = compute(cfg);
+  $('rFt').textContent = fmtUnit(res.Ft);
+  $('rFr').textContent = fmtUnit(res.Fr);
+  $('rFa').textContent = fmtUnit(res.Fa);
+  $('rBeta').textContent = cfg.beta_deg + '°';
+  $('rRAx').textContent = fmtUnit(res.RAx);
+  $('rRAy').textContent = fmtUnit(res.RAy);
+  $('rRAz').textContent = fmtUnit(res.RAz);
+  $('rFrA').textContent = fmtUnit(res.Fr_A);
+  $('rFaA').textContent = fmtUnit(res.Fa_A);
+  $('rRAtot').textContent = fmtUnit(res.RA_total);
+  $('rRBx').textContent = fmtUnit(res.RBx);
+  $('rRBy').textContent = fmtUnit(res.RBy);
+  $('rRBz').textContent = fmtUnit(res.RBz);
+  $('rFrB').textContent = fmtUnit(res.Fr_B);
+  $('rFaB').textContent = fmtUnit(res.Fa_B);
+  $('rRBtot').textContent = fmtUnit(res.RB_total);
+  $('rVmax').textContent = fmtUnit(Math.max(res.Vmax_y, res.Vmax_z));
+  $('rMmax').textContent = fmtM(res.Mmax_b);
+  $('rMmaxX').textContent = cfg.x + ' mm';
+  if(res.deflection){
+    $('rYmax').textContent = fmt(res.deflection.maxY, 4) + ' mm';
+  } else {
+    $('rYmax').textContent = 'Không áp dụng';
+  }
+}
+
+function updateEquilibrium(){
+  const cfg = readConfig();
+  const res = compute(cfg);
+  const e = res.equilibrium;
+  const tol = Math.max(1e-3, res.F * 1e-4);
+  $('eqFx').textContent = fmt(e.sumFx, 3) + ' N';
+  $('eqFy').textContent = fmt(e.sumFy, 3) + ' N';
+  $('eqFz').textContent = fmt(e.sumFz, 3) + ' N';
+  $('eqMAz').textContent = fmt(e.sumMA_z, 3) + ' N·mm';
+  $('eqMAy').textContent = fmt(e.sumMA_y, 3) + ' N·mm';
+  const ok = Math.abs(e.sumFx) < tol && Math.abs(e.sumFy) < tol && Math.abs(e.sumFz) < tol && Math.abs(e.sumMA_z) < tol * cfg.L && Math.abs(e.sumMA_y) < tol * cfg.L;
+  $('eqStatus').innerHTML = ok 
+    ? `<div class="ok-box">✓ Cân bằng lực và mômen thỏa mãn trong dung sai ${fmt(tol,3)} N.</div>`
+    : `<div class="err-box">✗ Phát hiện mất cân bằng. Kiểm tra lại thông số đầu vào.</div>`;
+}
+
+function updateAnalysis(){
+  const cfg = readConfig();
+  const res = compute(cfg);
+  let html = '';
+  if(cfg.beta_deg < 0.5){
+    html += `<p>Tại β ≈ 0° (bánh răng thẳng), <span class="hl">không có lực dọc trục</span> (Fa = 0). Tải trọng lên ổ chỉ gồm Ft và Fr.</p>`;
+  } else {
+    html += `<p>Tại β = ${cfg.beta_deg}°, góc nghiêng răng sinh ra lực dọc trục <span class="hl">Fa = ${fmtUnit(res.Fa)}</span> và làm tăng lực hướng kính <span class="hl">Fr = ${fmtUnit(res.Fr)}</span> (do hệ số 1/cos(β)).</p>`;
+  }
+  if(res.RA_total > res.RB_total + 0.1){
+    html += `<p>Ổ <span class="hl2">A chịu tải lớn hơn</span> ổ B (RA = ${fmtUnit(res.RA_total)} > RB = ${fmtUnit(res.RB_total)}). Vì x = ${cfg.x} mm < L/2 = ${(cfg.L/2).toFixed(0)} mm, bánh răng gần A hơn.</p>`;
+  } else if(res.RB_total > res.RA_total + 0.1){
+    html += `<p>Ổ <span class="hl3">B chịu tải lớn hơn</span> ổ A (RB = ${fmtUnit(res.RB_total)} > RA = ${fmtUnit(res.RA_total)}). Vì x = ${cfg.x} mm > L/2 = ${(cfg.L/2).toFixed(0)} mm, bánh răng gần B hơn.</p>`;
+  } else {
+    html += `<p>Hai ổ chịu tải <span class="hl">xấp xỉ bằng nhau</span> vì bánh răng đặt gần giữa nhịp (x ≈ L/2).</p>`;
+  }
+  html += `<p>Mômen uốn tổng hợp lớn nhất tại vị trí bánh răng: <span class="hl">M_max = ${fmtM(res.Mmax_b)}</span> tại x = ${cfg.x} mm.</p>`;
+  if(res.Fa_A > 0.1) html += `<p>Ổ A chịu tải dọc trục Fa = <span class="hl2">${fmtUnit(res.Fa_A)}</span>. Cần chọn ổ capable chịu dọc trục (ổ tiếp xúc góc hoặc ổ chặn).</p>`;
+  if(res.Fa_B > 0.1) html += `<p>Ổ B chịu tải dọc trục Fa = <span class="hl3">${fmtUnit(res.Fa_B)}</span>.</p>`;
+  if(cfg.Plimit > 0){
+    if(res.RA_total > cfg.Plimit) html += `<p class="warn">⚠ Tải tại ổ A (${fmtUnit(res.RA_total)}) VƯỢT giới hạn [P] = ${fmtUnit(cfg.Plimit)}.</p>`;
+    if(res.RB_total > cfg.Plimit) html += `<p class="warn">⚠ Tải tại ổ B (${fmtUnit(res.RB_total)}) VƯỢT giới hạn [P] = ${fmtUnit(cfg.Plimit)}.</p>`;
+    if(res.RA_total <= cfg.Plimit && res.RB_total <= cfg.Plimit) html += `<p>Tải tại cả hai ổ đều trong giới hạn cho phép [P] = ${fmtUnit(cfg.Plimit)}.</p>`;
+  }
+  html += `<p style="color:var(--ink-muted);font-size:10px;margin-top:8px"><em>Giới hạn mô hình: dầm tựa đơn giản, bỏ qua trọng lượng trục và ma sát. Tải tương đương động P của ổ lăn cần thêm hệ số X, Y theo loại ổ.</em></p>`;
+  $('analysisText').innerHTML = html;
+}
+
+function updateHoverInfo(xp){
+  if(xp === null){
+    $('hoverInfo').innerHTML = '<div class="hempty">Di chuyển chuột lên biểu đồ để xem giá trị tại x</div>';
+    return;
+  }
+  const cfg = readConfig();
+  const res = compute(cfg);
+  let html = '';
+  html += `<div class="hrow"><span class="k">x</span><span class="v">${xp.toFixed(2)} mm</span></div>`;
+  html += `<div class="hrow"><span class="k">β</span><span class="v">${cfg.beta_deg}°</span></div>`;
+  html += `<div class="hrow"><span class="k">V_y(x) [do Fr]</span><span class="v" style="color:#e67e22">${fmtUnit(shearY(xp, res, cfg))}</span></div>`;
+  html += `<div class="hrow"><span class="k">V_z(x) [do Ft]</span><span class="v" style="color:#c0392b">${fmtUnit(shearZ(xp, res, cfg))}</span></div>`;
+  html += `<div class="hrow"><span class="k">M_z(x) [do Fr]</span><span class="v" style="color:#e67e22">${fmtM(momentZ(xp, res, cfg))}</span></div>`;
+  html += `<div class="hrow"><span class="k">M_y(x) [do Ft]</span><span class="v" style="color:#c0392b">${fmtM(momentY(xp, res, cfg))}</span></div>`;
+  html += `<div class="hrow"><span class="k">M_b(x) [tổng hợp]</span><span class="v" style="color:#4d5d53">${fmtM(momentTotal(xp, res, cfg))}</span></div>`;
+  if(res.deflection){
+    html += `<div class="hrow"><span class="k">y(x)</span><span class="v" style="color:#5d6d7e">${fmt(res.deflection.sample(xp), 5)} mm</span></div>`;
+  } else {
+    html += `<div class="hrow"><span class="k">y(x)</span><span class="v" style="color:var(--ink-muted)">Không áp dụng</span></div>`;
+  }
+  $('hoverInfo').innerHTML = html;
+}
+
+function readConfig(){
+  return {
+    L: parseFloat($('L').value) || 400,
+    x: parseFloat($('x').value) || 0,
+    d: parseFloat($('d').value) || 30,
+    T: parseFloat($('T').value) || 0,
+    dw: parseFloat($('dw').value) || 1,
+    beta_deg: parseFloat($('beta').value) || 0,
+    alpha: parseFloat($('alpha').value) || 20,
+    Kd: parseFloat($('Kd').value) || 1,
+    bearingType: $('bearingType').value,
+    axialBearing: $('axialBearing').value,
+    Plimit: parseFloat($('Plimit').value) || 0,
+    E: parseFloat($('E').value) || 210,
+    enableDeflection: $('enableDeflection').checked
+  };
+}
+
+function validate(cfg){
+  const errors = [];
+  if(cfg.L <= 0) errors.push('L phải > 0');
+  if(cfg.x < 0 || cfg.x > cfg.L) errors.push(`x phải nằm trong [0, L] = [0, ${cfg.L}]`);
+  if(cfg.d <= 0) errors.push('d phải > 0');
+  if(cfg.T < 0) errors.push('T phải ≥ 0');
+  if(cfg.dw <= 0) errors.push('dw phải > 0');
+  if(cfg.beta_deg < 0 || cfg.beta_deg > 45) errors.push('β phải trong [0°, 45°]');
+  if(cfg.enableDeflection && cfg.E <= 0) errors.push('E phải > 0 khi tính độ võng');
+  if(errors.length){
+    $('diagWarning').style.display = '';
+    $('diagWarning').innerHTML = `<div class="err-box"><strong>Lỗi dữ liệu:</strong><br>${errors.join('<br>')}</div>`;
+    return false;
+  }
+  $('diagWarning').style.display = 'none';
+  return true;
+}
+
+function bindEvents(){
+  const inputs = ['L','x','d','T','dw','beta','alpha','Kd','bearingType','axialBearing','Plimit','E','enableDeflection','forceUnit'];
+  inputs.forEach(id => {
+    const el = $(id);
+    if(!el) return;
+    el.addEventListener('input', () => {
+      if(id === 'beta'){
+        $('betaSlider').value = el.value;
+        $('betaDisplay').textContent = el.value + '°';
+      }
+      drawAll();
+    });
+  });
+  ['showLabels','showVectors','showDimensions','showGrid','showFill','showCursor','autoScale','compareMode'].forEach(id => {
+    const el = $(id);
+    if(el){
+      el.addEventListener('change', () => {
+        state[id] = el.checked;
+        drawAll();
+      });
+    }
+  });
+  $('betaSlider').addEventListener('input', e => {
+    $('beta').value = e.target.value;
+    $('betaDisplay').textContent = e.target.value + '°';
+    drawAll();
+  });
+  $('betaInc').addEventListener('click', () => {
+    const v = Math.min(45, parseFloat($('beta').value) + 1);
+    $('beta').value = v;
+    $('betaSlider').value = v;
+    $('betaDisplay').textContent = v + '°';
+    drawAll();
+  });
+  $('betaDec').addEventListener('click', () => {
+    const v = Math.max(0, parseFloat($('beta').value) - 1);
+    $('beta').value = v;
+    $('betaSlider').value = v;
+    $('betaDisplay').textContent = v + '°';
+    drawAll();
+  });
+  $('betaPlay').addEventListener('click', toggleAnimation);
+  $('betaReset').addEventListener('click', () => {
+    stopAnimation();
+    $('beta').value = 20;
+    $('betaSlider').value = 20;
+    $('betaDisplay').textContent = '20°';
+    drawAll();
+  });
+  $('beta2').addEventListener('input', () => {
+    state.beta2 = parseFloat($('beta2').value) || 10;
+    drawAll();
+  });
+  $('btnCalc').addEventListener('click', drawAll);
+  $('btnSample').addEventListener('click', loadSample);
+  $('btnCSV').addEventListener('click', exportCSV);
+  $('btnPrint').addEventListener('click', () => window.print());
+  $('btnSurvey').addEventListener('click', runSurvey);
+  $('btnSurveyClear').addEventListener('click', clearSurvey);
+  ['loadDiagram','shearDiagram','momentDiagram','deflectionDiagram'].forEach(id => {
+    const svg = $(id);
+    if(!svg) return;
+    svg.addEventListener('mousemove', e => {
+      const rect = svg.getBoundingClientRect();
+      const xPx = (e.clientX - rect.left) / rect.width * 800;
+      const m = { left: 60, right: id === 'loadDiagram' ? 70 : 50 };
+      const plotW = 800 - m.left - m.right;
+      const t = (xPx - m.left) / plotW;
+      if(t < 0 || t > 1){
+        state.cursorX = null;
+      } else {
+        const cfg = readConfig();
+        state.cursorX = t * cfg.L;
+      }
+      drawAll();
+      updateHoverInfo(state.cursorX);
+    });
+    svg.addEventListener('mouseleave', () => {
+      state.cursorX = null;
+      drawAll();
+      updateHoverInfo(null);
+    });
+  });
+}
+
+function toggleAnimation(){
+  if(state.isPlaying) stopAnimation();
+  else startAnimation();
+}
+function startAnimation(){
+  state.isPlaying = true;
+  $('betaPlay').textContent = 'Dừng';
+  $('betaPlay').classList.add('active');
+  const min = parseFloat($('betaMin').value) || 0;
+  const max = parseFloat($('betaMax').value) || 45;
+  const step = 0.5;
+  function tick(){
+    if(!state.isPlaying) return;
+    let v = parseFloat($('beta').value) + step * state.animationDir;
+    if(v >= max){ v = max; state.animationDir = -1; }
+    if(v <= min){ v = min; state.animationDir = 1; }
+    $('beta').value = v;
+    $('betaSlider').value = v;
+    $('betaDisplay').textContent = v.toFixed(1) + '°';
+    drawAll();
+    state.animationId = requestAnimationFrame(tick);
+  }
+  tick();
+}
+function stopAnimation(){
+  state.isPlaying = false;
+  $('betaPlay').textContent = 'Quét';
+  $('betaPlay').classList.remove('active');
+  if(state.animationId) cancelAnimationFrame(state.animationId);
+}
+
+function loadSample(){
+  $('L').value = 400; $('x').value = 150; $('d').value = 30;
+  $('T').value = 100; $('dw').value = 100; $('beta').value = 20; $('alpha').value = 20; $('Kd').value = 1.0;
+  $('bearingType').value = 'angular'; $('axialBearing').value = 'A'; $('Plimit').value = 0;
+  $('E').value = 210; $('enableDeflection').checked = false;
+  $('betaSlider').value = 20; $('betaDisplay').textContent = '20°';
+  $('betaMin').value = 0; $('betaMax').value = 35; $('betaStep').value = 5;
+  drawAll();
+  showToast('Đã nạp dữ liệu mẫu');
+}
+
+let surveyChart = null;
+function runSurvey(){
+  const cfg = readConfig();
+  const bMin = parseFloat($('betaMin').value);
+  const bMax = parseFloat($('betaMax').value);
+  const bStep = parseFloat($('betaStep').value);
+  if(bMin >= bMax || bStep <= 0){ showToast('Kiểm tra khoảng β và bước Δβ', 'error'); return; }
+  $('chartLoading').style.display = 'flex';
+  setTimeout(() => {
+    const data = [];
+    for(let b = bMin; b <= bMax + 1e-6; b += bStep){
+      const c = { ...cfg, beta_deg: b };
+      const r = compute(c);
+      data.push({
+        beta: b,
+        Ft: r.Ft, Fr: r.Fr, Fa: r.Fa,
+        Fr_A: r.Fr_A, Fa_A: r.Fa_A,
+        Fr_B: r.Fr_B, Fa_B: r.Fa_B,
+        RA: r.RA_total, RB: r.RB_total
+      });
+    }
+    state.surveyData = data;
+    renderSurveyChart(data);
+    renderSurveyTable(data);
+    renderSurveyAnalysis(data);
+    $('chartLoading').style.display = 'none';
+  }, 50);
+}
+
+function renderSurveyChart(data){
+  const ctx = $('surveyChart').getContext('2d');
+  if(surveyChart) surveyChart.destroy();
+  const factor = state.forceUnit === 'kN' ? 0.001 : 1;
+  const unitSuffix = state.forceUnit;
+  const datasets = [
+    { label: 'Ft (lực vòng)', data: data.map(d => d.Ft * factor), borderColor: '#c0392b', backgroundColor: 'rgba(192,57,43,.1)', borderWidth: 2, pointRadius: 0, tension: 0.1 },
+    { label: 'Fr (lực hướng tâm)', data: data.map(d => d.Fr * factor), borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,.1)', borderWidth: 2, pointRadius: 0, tension: 0.1 },
+    { label: 'Fa (lực dọc trục)', data: data.map(d => d.Fa * factor), borderColor: '#8e44ad', backgroundColor: 'rgba(142,68,173,.1)', borderWidth: 2, pointRadius: 0, tension: 0.1 },
+    { label: 'RA (hợp)', data: data.map(d => d.RA * factor), borderColor: '#117a65', backgroundColor: 'transparent', borderWidth: 2, borderDash: [6,3], pointRadius: 0, tension: 0.1 },
+    { label: 'RB (hợp)', data: data.map(d => d.RB * factor), borderColor: '#b9770e', backgroundColor: 'transparent', borderWidth: 2, borderDash: [6,3], pointRadius: 0, tension: 0.1 }
+  ];
+  surveyChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: data.map(d => d.beta.toFixed(1)), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 10, family: 'JetBrains Mono' }, color: '#5a5043', boxWidth: 14, padding: 6 } },
+        tooltip: { callbacks: { title: items => `β = ${items[0].label}°`, label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(3)} ${unitSuffix}` } }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Góc nghiêng răng β (độ)', color: '#5a5043', font: { size: 11 } }, grid: { color: '#ece5d2' }, ticks: { color: '#8a7e6a', font: { size: 10, family: 'JetBrains Mono' } } },
+        y: { title: { display: true, text: `Lực (${unitSuffix})`, color: '#5a5043', font: { size: 11 } }, grid: { color: '#ece5d2' }, ticks: { color: '#8a7e6a', font: { size: 10, family: 'JetBrains Mono' } } }
+      }
+    }
+  });
+}
+
+function renderSurveyTable(data){
+  const tbody = $('surveyTable').querySelector('tbody');
+  const cfg = readConfig();
+  let html = '';
+  data.forEach(d => {
+    const isCur = Math.abs(d.beta - cfg.beta_deg) < 0.01;
+    html += `<tr class="${isCur?'cur':''}">
+      <td>${d.beta.toFixed(1)}</td>
+      <td>${fmt(d.Ft,2)}</td><td>${fmt(d.Fr,2)}</td><td>${fmt(d.Fa,2)}</td>
+      <td>${fmt(d.Fr_A,2)}</td><td>${fmt(d.Fa_A,2)}</td>
+      <td>${fmt(d.Fr_B,2)}</td><td>${fmt(d.Fa_B,2)}</td>
+      <td>${fmt(d.RA,2)}</td><td>${fmt(d.RB,2)}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+function renderSurveyAnalysis(data){
+  if(!data || data.length === 0){ $('surveyAnalysis').innerHTML = ''; return; }
+  const find = key => {
+    let max = -Infinity, min = Infinity, maxB = 0, minB = 0;
+    data.forEach(d => {
+      if(d[key] > max){ max = d[key]; maxB = d.beta; }
+      if(d[key] < min){ min = d[key]; minB = d.beta; }
+    });
+    return { max, min, maxB, minB };
+  };
+  const RA = find('RA'), RB = find('RB'), FaA = find('Fa');
+  let html = '<div class="fgrid" style="margin-top:10px">';
+  html += `<div class="fcard t2"><h4>Phản lực ổ A</h4>
+    <div class="eq">RA_max = ${fmt(RA.max,2)} N tại β = ${RA.maxB.toFixed(1)}°<br>RA_min = ${fmt(RA.min,2)} N tại β = ${RA.minB.toFixed(1)}°</div>
+    <div class="desc">Phản lực tổng hợp tại ổ A tăng khi β tăng do Fr và Fa đều tăng.</div></div>`;
+  html += `<div class="fcard t3"><h4>Phản lực ổ B</h4>
+    <div class="eq">RB_max = ${fmt(RB.max,2)} N tại β = ${RB.maxB.toFixed(1)}°<br>RB_min = ${fmt(RB.min,2)} N tại β = ${RB.minB.toFixed(1)}°</div>
+    <div class="desc">Tương tự ổ A, RB đạt cực đại khi β lớn.</div></div>`;
+  html += `<div class="fcard t6"><h4>Lực dọc trục Fa</h4>
+    <div class="eq">Fa_max = ${fmt(FaA.max,2)} N tại β = ${FaA.maxB.toFixed(1)}°<br>Fa_min = ${fmt(FaA.min,2)} N tại β = ${FaA.minB.toFixed(1)}°</div>
+    <div class="desc">Fa tỷ lệ thuận với tan(β). Khi β = 0° (răng thẳng), Fa = 0.</div></div>`;
+  const diff = data.map(d => Math.abs(d.RA - d.RB));
+  const maxDiff = Math.max(...diff);
+  const maxDiffB = data[diff.indexOf(maxDiff)].beta;
+  html += `<div class="fcard t4"><h4>Chênh lệch tải A–B</h4>
+    <div class="eq">Δ_max = ${fmt(maxDiff,2)} N tại β = ${maxDiffB.toFixed(1)}°</div>
+    <div class="desc">Chênh lệch phản lực giữa hai ổ. Lực đặt không đối xứng (x ≠ L/2) là nguyên nhân chính.</div></div>`;
+  html += '</div>';
+  $('surveyAnalysis').innerHTML = html;
+}
+
+function clearSurvey(){
+  state.surveyData = null;
+  if(surveyChart){ surveyChart.destroy(); surveyChart = null; }
+  $('surveyTable').querySelector('tbody').innerHTML = '';
+  $('surveyAnalysis').innerHTML = '';
+  showToast('Đã xóa kết quả khảo sát');
+}
+
+function exportCSV(){
+  const cfg = readConfig();
+  const bMin = parseFloat($('betaMin').value);
+  const bMax = parseFloat($('betaMax').value);
+  const bStep = parseFloat($('betaStep').value);
+  let rows = [['beta_deg','Ft_N','Fr_N','Fa_N','RAx_N','RAy_N','RAz_N','RA_N','RBx_N','RBy_N','RBz_N','RB_N','Fr_A_N','Fa_A_N','Fr_B_N','Fa_B_N','Mmax_Nmm','Vmax_N']];
+  for(let b = bMin; b <= bMax + 1e-6; b += bStep){
+    const c = { ...cfg, beta_deg: b };
+    const r = compute(c);
+    rows.push([
+      b.toFixed(2), r.Ft.toFixed(3), r.Fr.toFixed(3), r.Fa.toFixed(3),
+      r.RAx.toFixed(3), r.RAy.toFixed(3), r.RAz.toFixed(3), r.RA_total.toFixed(3),
+      r.RBx.toFixed(3), r.RBy.toFixed(3), r.RBz.toFixed(3), r.RB_total.toFixed(3),
+      r.Fr_A.toFixed(3), r.Fa_A.toFixed(3), r.Fr_B.toFixed(3), r.Fa_B.toFixed(3),
+      r.Mmax_b.toFixed(3), Math.max(r.Vmax_y, r.Vmax_z).toFixed(3)
+    ]);
+  }
+  const csv = '\uFEFF' + rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `bearing_force_beta_${bMin}-${bMax}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Đã xuất file CSV');
+}
+
+function showToast(msg, type='info'){
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:24px;right:24px;background:${type==='error'?'#c0392b':'#117a65'};color:#fff;padding:10px 18px;border-radius:3px;font-size:12px;font-family:'Space Grotesk';box-shadow:0 4px 12px rgba(0,0,0,.2);z-index:9999;animation:slideUp .3s`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 2500);
+}
+
+bindEvents();
+loadSample();
+if(typeof Chart === 'undefined'){ showToast('Chart.js không tải được.', 'error'); }
+</script>
+
+</body>
+</html>
